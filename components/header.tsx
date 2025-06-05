@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Menu, MessageCircle } from "lucide-react"
@@ -26,9 +27,19 @@ export function Header() {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2">
-              <div className="w-10 h-10 bg-[#FB7E13] rounded-full flex items-center justify-center">
-                <span className="text-white font-bold text-lg">JD</span>
+              <div className="w-50 h-50 bg-[#FB7E13] rounded-full overflow-hidden flex items-center justify-center">
+                <div className="w-14 h-14 rounded-full overflow-hidden ring-2 ring-[#FB7E13]">
+                  <Image
+                    src="/icon.png"
+                    alt="Foto de Jaime Dunn"
+                    width={100}
+                    height={100}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+
               </div>
+
               <div>
                 <h1 className="text-xl font-bold text-[#62676C]">Jaime Dunn</h1>
                 <p className="text-xs text-gray-600">Presidente 2025</p>

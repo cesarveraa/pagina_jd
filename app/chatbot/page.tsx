@@ -18,7 +18,7 @@ export default function ChatBot() {
             <CardHeader className="bg-[#0B274D] text-white">
               <CardTitle className="flex items-center gap-3">
                 <Avatar>
-                  <AvatarImage src="/placeholder.svg?height=40&width=40" alt="Jaime Dunn" />
+                  <AvatarImage src="icon.png" alt="Jaime Dunn" />
                   <AvatarFallback className="bg-[#F2C14E] text-[#0B274D]">JD</AvatarFallback>
                 </Avatar>
                 Conversa con el Equipo de Jaime Dunn
