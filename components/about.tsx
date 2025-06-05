@@ -31,10 +31,11 @@ export function About() {
             <div className="space-y-6">
               <div className="relative">
                 <img
-                  src="/placeholder.svg?height=400&width=400"
+                  src="/foto_gente.jpg"
                   alt="Jaime Dunn"
-                  className="w-full rounded-lg shadow-lg"
+                  className="w-full h-auto rounded-xl shadow-xl object-cover"
                 />
+
               </div>
 
               <Card>

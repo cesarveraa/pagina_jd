@@ -38,7 +38,7 @@ export function Hero() {
           <Button
             size="lg"
             variant="outline"
-            className="border-white text-white hover:bg-white hover:text-[#0B274D] px-8"
+            className="border-white text-[#0B274D] hover:bg-white hover:text-[#0B274D] px-8"
             asChild
           >
             <a href="#donate">Dona</a>
