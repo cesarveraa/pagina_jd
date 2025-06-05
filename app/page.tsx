@@ -8,6 +8,7 @@ import { Participate } from "@/components/participate"
 import { Donate } from "@/components/donate"
 import { Contact } from "@/components/contact"
 import { Declarations } from "@/components/declarations"
+import { UserProposals } from "@/components/user-proposals"
 
 export default function Home() {
   return (
@@ -15,6 +16,7 @@ export default function Home() {
       <Hero />
       <About />
       <Proposals />
+      <UserProposals />
       <Declarations />
       <DepartmentSolutions />
       <Testimonials />
