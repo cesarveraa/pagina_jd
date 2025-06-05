@@ -9,6 +9,7 @@ import { Donate } from "@/components/donate"
 import { Contact } from "@/components/contact"
 import { Declarations } from "@/components/declarations"
 import { UserProposals } from "@/components/user-proposals"
+import ElevenLabsWrapper from "@/components/ElevenLabsWidget"
 
 export default function Home() {
   return (
@@ -24,6 +25,7 @@ export default function Home() {
       <Participate />
       <Donate />
       <Contact />
+      <ElevenLabsWrapper />
     </main>
   )
 }
