@@ -1,106 +1,346 @@
 "use client"
 
-import { useChat } from "ai/react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useState, useRef, useEffect } from "react"
+import Image from "next/image"
+import Link from "next/link"
+import {
+  Send,
+  ArrowLeft,
+  Minimize2,
+  Calendar,
+  MapPin,
+  FileText,
+  Info,
+  ShieldCheck,
+  Landmark,
+} from "lucide-react"
 
-export default function ChatBot() {
-  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat()
+type Message = {
+  id: number
+  sender: "user" | "jaime"
+  text: string
+  timestamp: Date
+}
+
+export default function ChatPage() {
+  const [message, setMessage] = useState("")
+  const [messages, setMessages] = useState<Message[]>(() => {
+    const saved = typeof window !== "undefined"
+      ? localStorage.getItem("chatMessagesJaime")
+      : null
+
+    if (saved) {
+      try {
+        return JSON.parse(saved).map((m: any) => ({
+          ...m,
+          timestamp: new Date(m.timestamp),
+        }))
+      } catch {
+        /* fall-back */
+      }
+    }
+
+    return [
+      {
+        id: 1,
+        sender: "jaime",
+        text: "¡Hola! Soy Jaime Guillermo Dunn de Ávila. Estoy aquí para responder tus preguntas sobre mis propuestas para Bolivia. ¿En qué puedo ayudarte hoy?",
+        timestamp: new Date(),
+      },
+    ]
+  })
+
+  const [isTyping, setIsTyping] = useState(false)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
+
+  // Guarda y hace scroll
+  const pushMessage = (msg: Message) => {
+    setMessages((prev) => {
+      const next = [...prev, msg]
+      if (typeof window !== "undefined") {
+        localStorage.setItem("chatMessages", JSON.stringify(next))
+      }
+      return next
+    })
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+    }, 50)
+  }
+
+  // Envía la petición al backend
+  const handleSendMessage = async () => {
+    const text = message.trim()
+    if (!text) return
+
+    // 1) Muestra usuario
+    const userMsg: Message = {
+      id: messages.length + 1,
+      sender: "user",
+      text,
+      timestamp: new Date(),
+    }
+    pushMessage(userMsg)
+    setMessage("")
+    inputRef.current?.focus()
+
+    // 2) Indica "jaime está escribiendo”
+    setIsTyping(true)
+
+    try {
+      const res = await fetch(
+        "https://server-crj.vercel.app/api/responder_dunn",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: text }),
+        }
+      )
+      const { response } = await res.json()
+
+      // 3) Muestra respuesta
+      const jaimeMsg: Message = {
+        id: userMsg.id + 1,
+        sender: "jaime",
+        text: response,
+        timestamp: new Date(),
+      }
+      pushMessage(jaimeMsg)
+    } catch (err) {
+      console.error(err)
+      pushMessage({
+        id: messages.length + 2,
+        sender: "jaime",
+        text: "Lo siento, hubo un error al enviar tu mensaje.",
+        timestamp: new Date(),
+      })
+    } finally {
+      setIsTyping(false)
+    }
+  }
+
+  // Enviar con Enter
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault()
+      handleSendMessage()
+    }
+  }
+
+  // Focus inicial y scroll en cada mensaje
+  useEffect(() => {
+    inputRef.current?.focus()
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [])
+
+  // Formatea hora
+  const formatTimestamp = (ts: Date) =>
+    ts.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+
+  const suggestedTopics = [
+    {
+      icon: <Calendar className="h-4 w-4" />,
+      text: "Agenda de campaña",
+    },
+    {
+      icon: <FileText className="h-4 w-4" />,
+      text: "Reforma económica liberal",
+    },
+    {
+      icon: <ShieldCheck className="h-4 w-4" />,
+      text: "Justicia y lucha anticorrupción",
+    },
+    {
+      icon: <Landmark className="h-4 w-4" />,
+      text: "Nuevo modelo de Estado",
+    },
+    {
+      icon: <MapPin className="h-4 w-4" />,
+      text: "Propuestas regionales",
+    },
+    {
+      icon: <Info className="h-4 w-4" />,
+      text: "Conoce a Jaime Dunn",
+    },
+  ]
+
+  // Click en sugerido
+  const handleTopicClick = (topic: string) => {
+    setMessage(topic)
+    inputRef.current?.focus()
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="container mx-auto px-4">
-        <div className="max-w-4xl mx-auto">
-          <Card className="h-[80vh]">
-            <CardHeader className="bg-[#0B274D] text-white">
-              <CardTitle className="flex items-center gap-3">
-                <Avatar>
-                  <AvatarImage src="/placeholder.svg?height=40&width=40" alt="Jaime Dunn" />
-                  <AvatarFallback className="bg-[#F2C14E] text-[#0B274D]">JD</AvatarFallback>
-                </Avatar>
-                Conversa con el Equipo de Jaime Dunn
-              </CardTitle>
-              <p className="text-blue-100">
-                Pregunta sobre nuestras propuestas, agenda de eventos o cómo participar en la campaña
-              </p>
-            </CardHeader>
-            <CardContent className="p-0">
-              <ScrollArea className="h-[60vh] p-4">
-                {messages.length === 0 && (
-                  <div className="text-center text-gray-500 mt-8">
-                    <p className="text-lg mb-4">¡Hola! Soy el asistente virtual de la campaña de Jaime Dunn.</p>
-                    <p>Puedes preguntarme sobre:</p>
-                    <ul className="list-disc list-inside mt-2 space-y-1">
-                      <li>Propuestas de gobierno</li>
-                      <li>Biografía y experiencia de Jaime Dunn</li>
-                      <li>Próximos eventos y agenda</li>
-                      <li>Cómo participar como voluntario</li>
-                      <li>Información sobre donaciones</li>
-                    </ul>
-                  </div>
-                )}
-                {messages.map((m) => (
-                  <div key={m.id} className={`mb-4 flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                    <div className={`flex gap-3 max-w-[80%] ${m.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
-                      <Avatar className="w-8 h-8">
-                        {m.role === "user" ? (
-                          <AvatarFallback className="bg-blue-500 text-white text-sm">Tú</AvatarFallback>
-                        ) : (
-                          <AvatarFallback className="bg-[#F2C14E] text-[#0B274D] text-sm">JD</AvatarFallback>
-                        )}
-                      </Avatar>
-                      <div
-                        className={`p-3 rounded-lg ${
-                          m.role === "user" ? "bg-[#0B274D] text-white" : "bg-gray-100 text-gray-800"
-                        }`}
-                      >
-                        {m.content}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                {isLoading && (
-                  <div className="flex justify-start mb-4">
-                    <div className="flex gap-3 max-w-[80%]">
-                      <Avatar className="w-8 h-8">
-                        <AvatarFallback className="bg-[#F2C14E] text-[#0B274D] text-sm">JD</AvatarFallback>
-                      </Avatar>
-                      <div className="bg-gray-100 p-3 rounded-lg">
-                        <div className="flex space-x-1">
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                          <div
-                            className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                            style={{ animationDelay: "0.1s" }}
-                          ></div>
-                          <div
-                            className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                            style={{ animationDelay: "0.2s" }}
-                          ></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </ScrollArea>
-            </CardContent>
-            <CardFooter className="border-t">
-              <form onSubmit={handleSubmit} className="flex w-full space-x-2">
-                <Input
-                  value={input}
-                  onChange={handleInputChange}
-                  placeholder="Escribe tu pregunta sobre la campaña..."
-                  className="flex-grow"
-                  disabled={isLoading}
+    <div className="flex h-screen bg-gray-50">
+      {/* Sidebar */}
+      <div className="hidden md:block w-64 bg-white border-r border-gray-200">
+        <div className="p-4 border-b border-gray-200">
+          <Link href="/" className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors">
+            <ArrowLeft className="h-5 w-5" />
+            <span className="font-medium">Volver al sitio</span>
+          </Link>
+        </div>
+
+        <div className="p-4">
+          <h2 className="font-bold text-gray-700 mb-4">Información</h2>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 p-2 hover:bg-gray-100 rounded-md transition-colors cursor-pointer">
+              <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-primary">
+                <Calendar className="h-4 w-4" />
+              </div>
+              <span className="text-sm">Agenda de Campaña</span>
+            </div>
+            <div className="flex items-center gap-3 p-2 hover:bg-gray-100 rounded-md transition-colors cursor-pointer">
+              <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-primary">
+                <FileText className="h-4 w-4" />
+              </div>
+              <span className="text-sm">Propuestas Completas</span>
+            </div>
+            <div className="flex items-center gap-3 p-2 hover:bg-gray-100 rounded-md transition-colors cursor-pointer">
+              <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-primary">
+                <MapPin className="h-4 w-4" />
+              </div>
+              <span className="text-sm">Eventos Cercanos</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 mt-4">
+          <div className="bg-primary/5 p-4 rounded-lg">
+            <h3 className="font-bold text-primary mb-2">¿Quieres participar?</h3>
+            <p className="text-sm text-gray-600 mb-3">Únete a nuestro equipo de voluntarios y sé parte del cambio.</p>
+            <Link
+              href="#participa"
+              className="text-sm bg-primary text-white py-2 px-3 rounded-md inline-block hover:bg-primary/90 transition-colors"
+            >
+              Registrarme
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* Chat Container */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <header className="bg-white border-b border-gray-200 py-3 px-4 md:px-6 flex items-center justify-between shadow-sm">
+          <div className="flex items-center">
+            <div className="md:hidden mr-3">
+              <Link href="/" className="text-gray-500 hover:text-primary">
+                <ArrowLeft className="h-6 w-6" />
+              </Link>
+            </div>
+            <div className="flex items-center">
+              <div className="relative">
+                <Image
+                  src="/images/jaime_perfil.png"
+                  alt="Jaime"
+                  width={48}
+                  height={48}
+                  className="h-10 w-10 sm:h-12 sm:w-12 rounded-full object-cover border-2 border-accent"
                 />
-                <Button type="submit" disabled={isLoading} className="bg-[#0B274D] hover:bg-[#0B274D]/90">
-                  Enviar
-                </Button>
-              </form>
-            </CardFooter>
-          </Card>
+                <span className="absolute bottom-0 right-0 block h-3 w-3 bg-green-500 rounded-full border-2 border-white" />
+              </div>
+              <div className="ml-3">
+                <h1 className="font-bold text-gray-800 text-lg sm:text-xl">Jaime Guillermo Dunn de Ávila</h1>
+                <p className="text-xs sm:text-sm text-gray-500">Candidato Presidencial 2025 • En línea</p>
+              </div>
+            </div>
+          </div>
+          <Link href="/" className="text-gray-500 hover:text-primary p-2 rounded-full md:hidden">
+            <Minimize2 className="h-6 w-6" />
+          </Link>
+        </header>
+
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto p-4 md:p-6">
+          <div className="max-w-3xl mx-auto space-y-6">
+            {messages.map((msg) => (
+              <div
+                key={msg.id}
+                className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
+              >
+                {msg.sender === "jaime" && (
+                  <div className="flex-shrink-0 mr-3">
+                    <Image
+                      src="/images/jaime_perfil.png"
+                      alt="Jaime"
+                      width={40}
+                      height={40}
+                      className="h-8 w-8 sm:h-10 sm:w-10 rounded-full object-cover"
+                    />
+                  </div>
+                )}
+                <div
+                  className={`max-w-[80%] p-4 rounded-2xl shadow-sm ${msg.sender === "user"
+                      ? "bg-primary text-white rounded-br-none"
+                      : "bg-white border rounded-bl-none"
+                    }`}
+                >
+                  <p className="text-sm sm:text-base">{msg.text}</p>
+                  <p className="text-xs sm:text-sm mt-1 text-gray-400">
+                    {formatTimestamp(msg.timestamp)}
+                  </p>
+                </div>
+              </div>
+            ))}
+
+            {isTyping && (
+              <div className="flex justify-start">
+                <div className="flex-shrink-0 mr-3">
+                  <Image
+                    src="/images/jaime_perfil.png"
+                    alt="Jaime typing"
+                    width={40}
+                    height={40}
+                    className="h-8 w-8 sm:h-10 sm:w-10 rounded-full object-cover opacity-60"
+                  />
+                </div>
+                <div className="p-4 bg-white border rounded-2xl rounded-bl-none">
+                  <div className="flex space-x-1">
+                    <div className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" />
+                    <div className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" />
+                    <div className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div ref={messagesEndRef} />
+          </div>
+        </div>
+
+        {/* Input */}
+        <div className="p-4 border-t bg-white">
+          <div className="flex flex-wrap gap-2 mb-4">
+            {suggestedTopics.map((topic, i) => (
+              <button
+                key={i}
+                onClick={() => handleTopicClick(topic.text)}
+                className="flex items-center gap-1.5 bg-gray-100 px-3 py-1 rounded-full text-sm sm:text-base"
+              >
+                {topic.icon}
+                {topic.text}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center bg-gray-50 border rounded-2xl px-4 py-2">
+            <textarea
+              ref={inputRef}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              onKeyDown={handleKeyPress}
+              placeholder="Escribe tu mensaje a Jaime..."
+              className="flex-1 bg-transparent resize-none focus:outline-none text-sm sm:text-base"
+              rows={1}
+            />
+            <button
+              onClick={handleSendMessage}
+              disabled={!message.trim() || isTyping}
+              className="p-2 rounded-full bg-primary text-white disabled:opacity-50"
+            >
+              <Send className="h-5 w-5 sm:h-6 sm:w-6" />
+            </button>
+          </div>
         </div>
       </div>
     </div>
